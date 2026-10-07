@@ -3,13 +3,8 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
-  signInWithRedirect,
-  signInAnonymously,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   signOut,
-  User as FirebaseUser,
-  AuthError
+  User as FirebaseUser
 } from 'firebase/auth';
 import {
   getFirestore,
@@ -20,12 +15,9 @@ import {
   getStorage,
   ref as storageRef,
   uploadBytes,
-  getDownloadURL,
-  deleteObject
+  getDownloadURL
 } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
-
-export { firebaseConfig };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
@@ -96,35 +88,6 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
-// --- Auth Error Helper ---
-export interface AuthErrorInfo {
-  code: string;
-  message: string;
-  isUnauthorizedDomain: boolean;
-  domain?: string;
-}
-
-export function parseAuthError(err: unknown): AuthErrorInfo {
-  const error = err as AuthError;
-  const code = error?.code || 'unknown-error';
-  const rawMessage = error?.message || 'Authentication failed';
-  const isUnauthorizedDomain = code === 'auth/unauthorized-domain';
-  const domain = typeof window !== 'undefined' ? window.location.hostname : undefined;
-
-  let message = rawMessage;
-  if (isUnauthorizedDomain) {
-    message = `This domain (${domain}) is not authorized for Google OAuth in Firebase Console. Add "${domain}" to Firebase Console > Authentication > Settings > Authorized domains.`;
-  } else if (code === 'auth/popup-blocked') {
-    message = 'Sign-in popup was blocked by your browser. Please allow popups or try guest sign-in.';
-  } else if (code === 'auth/popup-closed-by-user') {
-    message = 'Sign-in popup was closed before completing.';
-  } else if (code === 'auth/network-request-failed') {
-    message = 'Network error while reaching Firebase Auth.';
-  }
-
-  return { code, message, isUnauthorizedDomain, domain };
-}
-
 // --- Auth Utilities ---
 export async function signInWithGoogle(): Promise<FirebaseUser> {
   try {
@@ -132,42 +95,8 @@ export async function signInWithGoogle(): Promise<FirebaseUser> {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
   } catch (err) {
-    const parsed = parseAuthError(err);
-    console.warn('[Firebase Auth] Sign in failed:', parsed);
-    throw parsed;
-  }
-}
-
-export async function signInGuestUser(): Promise<FirebaseUser> {
-  try {
-    const result = await signInAnonymously(auth);
-    return result.user;
-  } catch (err) {
-    const parsed = parseAuthError(err);
-    console.warn('[Firebase Auth] Guest sign in failed:', parsed);
-    throw parsed;
-  }
-}
-
-export async function signInWithEmailUser(email: string, pass: string): Promise<FirebaseUser> {
-  try {
-    const result = await signInWithEmailAndPassword(auth, email, pass);
-    return result.user;
-  } catch (err) {
-    const parsed = parseAuthError(err);
-    console.warn('[Firebase Auth] Email sign in failed:', parsed);
-    throw parsed;
-  }
-}
-
-export async function signUpWithEmailUser(email: string, pass: string): Promise<FirebaseUser> {
-  try {
-    const result = await createUserWithEmailAndPassword(auth, email, pass);
-    return result.user;
-  } catch (err) {
-    const parsed = parseAuthError(err);
-    console.warn('[Firebase Auth] Email sign up failed:', parsed);
-    throw parsed;
+    console.error('[Firebase Auth] Sign in failed:', err);
+    throw err;
   }
 }
 
@@ -195,8 +124,8 @@ export async function uploadFileToStorage(file: File, userId: string): Promise<s
     return downloadUrl;
   } catch (storageError) {
     console.warn('[Firebase Storage] Direct upload error, checking base64 fallback:', storageError);
-    // If under 15MB, provide inline Base64 data URL fallback so media never breaks
-    if (file.size < 15 * 1024 * 1024) {
+    // If under 3MB, provide inline Base64 data URL fallback so image never breaks
+    if (file.size < 3 * 1024 * 1024) {
       return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -206,16 +135,5 @@ export async function uploadFileToStorage(file: File, userId: string): Promise<s
       });
     }
     throw storageError;
-  }
-}
-
-// --- Cloud Storage Delete File ---
-export async function deleteFileFromStorage(fileUrl: string): Promise<void> {
-  try {
-    if (!fileUrl || !fileUrl.startsWith('http')) return;
-    const fileRef = storageRef(storage, fileUrl);
-    await deleteObject(fileRef);
-  } catch (err) {
-    console.warn('[Firebase Storage] Delete file warning:', err);
   }
 }

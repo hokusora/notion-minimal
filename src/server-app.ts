@@ -19,8 +19,7 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const isVercel = Boolean(process.env.VERCEL);
-const UPLOADS_DIR = isVercel ? '/tmp/uploads' : path.resolve(process.cwd(), 'uploads');
+const UPLOADS_DIR = path.resolve(process.cwd(), 'uploads');
 
 if (!fs.existsSync(UPLOADS_DIR)) {
   try {

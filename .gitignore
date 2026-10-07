@@ -7,5 +7,4 @@ coverage/
 .env*
 !.env.example
 .aistudio/
-uploads/*
-!uploads/.gitkeep
+

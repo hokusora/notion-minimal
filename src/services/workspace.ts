@@ -10,7 +10,7 @@ import {
   getDocs,
   serverTimestamp,
 } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType, deleteFileFromStorage } from './firebase.ts';
+import { db, handleFirestoreError, OperationType } from './firebase.ts';
 import { Page, Database, Row, ColumnSchema, MediaItem } from '../types/index.ts';
 
 const INITIAL_BLOCKS = JSON.stringify([
@@ -585,12 +585,7 @@ export async function deleteMediaItem(item: MediaItem): Promise<void> {
     // 1. Delete Firestore metadata record
     await deleteDoc(doc(db, 'media', item.id));
 
-    // 2. Delete from Firebase Cloud Storage if cloud URL
-    if (item.fileUrl && (item.fileUrl.includes('firebasestorage.googleapis.com') || item.fileUrl.startsWith('gs://'))) {
-      deleteFileFromStorage(item.fileUrl).catch((e) => console.warn('[Delete cloud storage warning]:', e));
-    }
-
-    // 3. Fallback: Delete physical file from disk via server endpoint if any
+    // 2. Delete physical file from disk via server endpoint
     if (item.fileKey) {
       fetch(`/api/files/delete?key=${encodeURIComponent(item.fileKey)}`, {
         method: 'DELETE',
@@ -599,144 +594,4 @@ export async function deleteMediaItem(item: MediaItem): Promise<void> {
   } catch (err) {
     handleFirestoreError(err, OperationType.DELETE, `media/${item.id}`);
   }
-}
-
-// --- Client-Side Guest Workspace Engine (Zero-Failure Vercel / Offline Fallback) ---
-const GUEST_PAGES_KEY = 'notion_guest_pages';
-const GUEST_DBS_KEY = 'notion_guest_databases';
-
-export function getInitialGuestWorkspace(): { pages: Page[]; databases: Database[] } {
-  try {
-    const cachedPages = localStorage.getItem(GUEST_PAGES_KEY);
-    const cachedDbs = localStorage.getItem(GUEST_DBS_KEY);
-
-    if (cachedPages && cachedDbs) {
-      const parsedPages: Page[] = JSON.parse(cachedPages);
-      const parsedDbs: Database[] = JSON.parse(cachedDbs);
-      if (parsedPages.length > 0 || parsedDbs.length > 0) {
-        return { pages: parsedPages, databases: parsedDbs };
-      }
-    }
-  } catch (e) {
-    console.warn('[GuestStorage] Local cache read warning:', e);
-  }
-
-  // Generate robust starter Notion data
-  const page1Id = 'guest-page-welcome';
-  const page2Id = 'guest-page-sync';
-  const dbId = 'guest-db-sprint';
-  const now = new Date().toISOString();
-
-  const starterPages: Page[] = [
-    {
-      id: page1Id,
-      title: 'Welcome to Notion Minimal',
-      icon: '📝',
-      content: INITIAL_BLOCKS,
-      parentId: null,
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: page2Id,
-      title: 'Weekly Engineering Sync',
-      icon: '📅',
-      content: JSON.stringify([
-        {
-          id: 's-1',
-          type: 'heading',
-          props: { textColor: 'default', backgroundColor: 'default', textAlignment: 'left', level: 1 },
-          content: [{ type: 'text', text: 'Engineering Architecture Notes', styles: {} }],
-          children: []
-        },
-        {
-          id: 's-2',
-          type: 'paragraph',
-          props: { textColor: 'default', backgroundColor: 'default', textAlignment: 'left' },
-          content: [{ type: 'text', text: 'Full cloud synchronization with Firebase Auth & Cloud Firestore is ready.', styles: {} }],
-          children: []
-        },
-        {
-          id: 's-3',
-          type: 'checkListItem',
-          props: { textColor: 'default', backgroundColor: 'default', textAlignment: 'left', checked: true },
-          content: [{ type: 'text', text: 'BlockNote WYSIWYG editor integration', styles: {} }],
-          children: []
-        },
-        {
-          id: 's-4',
-          type: 'checkListItem',
-          props: { textColor: 'default', backgroundColor: 'default', textAlignment: 'left', checked: true },
-          content: [{ type: 'text', text: 'Firebase Cloud Storage file upload pipeline', styles: {} }],
-          children: []
-        }
-      ]),
-      parentId: page1Id,
-      createdAt: now,
-      updatedAt: now,
-    }
-  ];
-
-  const starterDatabases: Database[] = [
-    {
-      id: dbId,
-      title: 'Sprint Roadmap & Milestones',
-      icon: '📊',
-      schema: JSON.stringify(INITIAL_SCHEMA),
-      createdAt: now,
-      updatedAt: now,
-      rows: [
-        {
-          id: 'row-1',
-          databaseId: dbId,
-          properties: JSON.stringify({
-            'col-name': 'Google Sign-In & Instant Guest Auth',
-            'col-status': 'Completed',
-            'col-tags': ['Work'],
-            'col-estimate': 5,
-          }),
-          createdAt: now,
-          updatedAt: now,
-        },
-        {
-          id: 'row-2',
-          databaseId: dbId,
-          properties: JSON.stringify({
-            'col-name': 'Direct Firebase Cloud Storage uploads',
-            'col-status': 'Completed',
-            'col-tags': ['Work', 'Ideas'],
-            'col-estimate': 3,
-          }),
-          createdAt: now,
-          updatedAt: now,
-        },
-        {
-          id: 'row-3',
-          databaseId: dbId,
-          properties: JSON.stringify({
-            'col-name': 'Zero-failure Vercel deployment & persistence',
-            'col-status': 'In Progress',
-            'col-tags': ['Work'],
-            'col-estimate': 4,
-          }),
-          createdAt: now,
-          updatedAt: now,
-        }
-      ]
-    }
-  ];
-
-  try {
-    localStorage.setItem(GUEST_PAGES_KEY, JSON.stringify(starterPages));
-    localStorage.setItem(GUEST_DBS_KEY, JSON.stringify(starterDatabases));
-  } catch {}
-
-  return { pages: starterPages, databases: starterDatabases };
-}
-
-export function saveGuestWorkspaceData(pages: Page[], databases: Database[]): void {
-  try {
-    localStorage.setItem(GUEST_PAGES_KEY, JSON.stringify(pages));
-    localStorage.setItem(GUEST_DBS_KEY, JSON.stringify(databases));
-  } catch {}
 }

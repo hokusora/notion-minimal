@@ -11,13 +11,12 @@ import {
   LogIn,
   LogOut,
   User as UserIcon,
+  CloudCheck,
   Shield,
-  Sparkles,
 } from 'lucide-react';
 import { Page, Database, ActiveItem } from '../types/index.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import { isUserAdmin } from '../services/workspace.ts';
-import { AuthModal } from './AuthModal.tsx';
 
 interface SidebarProps {
   pages: Page[];
@@ -29,7 +28,6 @@ interface SidebarProps {
   onDuplicatePage: (id: string) => void;
   onCreateDatabase: () => void;
   onDeleteDatabase: (id: string) => void;
-  onOpenAuthModal?: () => void;
   isOpen: boolean;
   onToggleOpen: () => void;
 }
@@ -47,14 +45,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpen,
   onToggleOpen,
 }) => {
-  const { user, signIn, signInGuest, signOut, authError } = useAuth();
+  const { user, signIn, signOut } = useAuth();
   const isAdmin = isUserAdmin(user?.email);
   const [collapsedPages, setCollapsedPages] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const togglePageCollapse = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -269,49 +266,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Guest Sign-In Banner if Unauthenticated */}
       {!user && (
-        <div className="m-2 p-2.5 bg-white border border-[rgba(55,53,47,0.1)] rounded-lg shadow-2xs space-y-2">
+        <div className="m-2 p-2.5 bg-white border border-[rgba(55,53,47,0.1)] rounded-lg shadow-2xs">
           <div className="flex items-start gap-2">
             <UserIcon className="w-4 h-4 text-[#787774] mt-0.5 shrink-0" />
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold text-[#37352F]">Cloud Sync</div>
-              <div className="text-[11px] text-[#787774] leading-relaxed">
-                Sync documents permanently with Firebase Auth &amp; Firestore.
+              <div className="text-xs font-medium text-[#37352F]">Save to Cloud</div>
+              <div className="text-[11px] text-[#787774] mb-2 leading-relaxed">
+                Sign in with Google so your pages and uploads are stored permanently.
               </div>
+              <button
+                type="button"
+                onClick={signIn}
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 bg-[#37352F] text-white rounded-md text-xs font-medium hover:bg-neutral-800 transition-colors shadow-2xs"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Google Sign-In</span>
+              </button>
             </div>
-          </div>
-
-          <div className="flex flex-col gap-1.5 pt-0.5">
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  await signIn();
-                } catch {
-                  setIsAuthModalOpen(true);
-                }
-              }}
-              className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 bg-[#37352F] text-white rounded-md text-xs font-medium hover:bg-black transition-colors shadow-2xs cursor-pointer"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Sign In with Google</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => signInGuest()}
-              className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 bg-neutral-100 hover:bg-neutral-200 text-[#37352F] rounded-md text-xs font-medium transition-colors cursor-pointer border border-neutral-200"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Instant Guest Cloud Access</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsAuthModalOpen(true)}
-              className="text-[10px] text-center text-[#787774] hover:text-[#37352F] hover:underline cursor-pointer py-0.5"
-            >
-              Email login or Vercel domain help &rarr;
-            </button>
           </div>
         </div>
       )}
@@ -457,11 +428,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span>New page</span>
         </button>
       </div>
-
-      <AuthModal
-        isOpen={isAuthModalOpen || Boolean(authError?.isUnauthorizedDomain)}
-        onClose={() => setIsAuthModalOpen(false)}
-      />
     </aside>
   );
 };

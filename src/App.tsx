@@ -19,8 +19,6 @@ import {
   syncAddRow,
   syncUpdateRow,
   syncDeleteRow,
-  getInitialGuestWorkspace,
-  saveGuestWorkspaceData,
 } from './services/workspace.ts';
 
 export default function App() {
@@ -127,46 +125,30 @@ export default function App() {
         unsubscribeDbs();
       };
     } else {
-      // Fallback: Guest mode loads from client cache / built-in starter templates, with background backend sync
+      // Fallback: Guest mode loads from backend API
       const loadGuestWorkspace = async () => {
         try {
           setIsLoading(true);
-          let loadedPages: Page[] = [];
-          let loadedDbs: Database[] = [];
+          const [pagesRes, dbRes] = await Promise.all([
+            fetch('/api/pages').catch(() => null),
+            fetch('/api/databases').catch(() => null),
+          ]);
 
-          // 1. Attempt fetching from backend API if running
-          try {
-            const [pagesRes, dbRes] = await Promise.all([
-              fetch('/api/pages').catch(() => null),
-              fetch('/api/databases').catch(() => null),
-            ]);
+          const pagesData: Page[] = pagesRes && pagesRes.ok ? await pagesRes.json() : [];
+          const dbData: Database[] = dbRes && dbRes.ok ? await dbRes.json() : [];
 
-            if (pagesRes && pagesRes.ok) loadedPages = await pagesRes.json();
-            if (dbRes && dbRes.ok) loadedDbs = await dbRes.json();
-          } catch {}
-
-          // 2. Fallback to client-side starter workspace & localStorage (Zero-failure on Vercel)
-          if (loadedPages.length === 0 && loadedDbs.length === 0) {
-            const localData = getInitialGuestWorkspace();
-            loadedPages = localData.pages;
-            loadedDbs = localData.databases;
-          }
-
-          setPages(loadedPages);
-          setDatabases(loadedDbs);
+          setPages(pagesData);
+          setDatabases(dbData);
 
           if (!activeItem) {
-            if (loadedPages.length > 0) {
-              handleSelectItem({ type: 'page', id: loadedPages[0].id });
-            } else if (loadedDbs.length > 0) {
-              handleSelectItem({ type: 'database', id: loadedDbs[0].id });
+            if (pagesData.length > 0) {
+              handleSelectItem({ type: 'page', id: pagesData[0].id });
+            } else if (dbData.length > 0) {
+              handleSelectItem({ type: 'database', id: dbData[0].id });
             }
           }
         } catch (err) {
-          console.warn('[App] Guest mode load notice:', err);
-          const localData = getInitialGuestWorkspace();
-          setPages(localData.pages);
-          setDatabases(localData.databases);
+          console.warn('[App] Guest mode load fallback warning:', err);
         } finally {
           setIsLoading(false);
         }
@@ -187,17 +169,17 @@ export default function App() {
         });
         return () => unsubscribeRows();
       } else {
-        // Guest mode fetch with local row fallback
+        // Guest mode fetch
         fetch(`/api/databases/${activeItem.id}`)
           .then((res) => (res.ok ? res.json() : null))
           .then((fullDb: Database | null) => {
-            if (fullDb && fullDb.rows && fullDb.rows.length > 0) {
+            if (fullDb) {
               setDatabases((prev) =>
                 prev.map((d) => (d.id === fullDb.id ? fullDb : d))
               );
             }
           })
-          .catch(() => {});
+          .catch((err) => console.error('[App] Failed to load database rows:', err));
       }
     }
   }, [activeItem, user]);
@@ -213,43 +195,29 @@ export default function App() {
         console.error('[App] Error creating page in Firestore:', err);
       }
     } else {
-      // Guest mode: instant local creation with persistent storage
-      const newPage: Page = {
-        id: 'guest-page-' + Math.random().toString(36).slice(2, 9),
-        userId: 'guest',
-        title: 'Untitled',
-        icon: '📄',
-        content: JSON.stringify([
-          {
-            id: 'b-' + Math.random().toString(36).slice(2, 9),
-            type: 'paragraph',
-            props: { textColor: 'default', backgroundColor: 'default', textAlignment: 'left' },
-            content: [],
-            children: []
-          }
-        ]),
-        parentId: parentId || null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      const updated = [...pages, newPage];
-      setPages(updated);
-      saveGuestWorkspaceData(updated, databases);
-      handleSelectItem({ type: 'page', id: newPage.id });
-
-      // Optional backend sync
-      fetch('/api/pages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: 'Untitled', icon: '📄', parentId }),
-      }).catch(() => {});
+      // Guest API fallback
+      try {
+        const res = await fetch('/api/pages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: 'Untitled', icon: '📄', parentId }),
+        });
+        if (res.ok) {
+          const newPage: Page = await res.json();
+          setPages((prev) => [...prev, newPage]);
+          handleSelectItem({ type: 'page', id: newPage.id });
+        }
+      } catch (err) {
+        console.error('[App] Error creating page in guest API:', err);
+      }
     }
   };
 
   const handleUpdatePage = async (id: string, updates: Partial<Page>) => {
     // Optimistic update
-    const updatedPages = pages.map((p) => (p.id === id ? { ...p, ...updates } : p));
-    setPages(updatedPages);
+    setPages((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
+    );
 
     const target = pages.find((p) => p.id === id);
     if (!target) return;
@@ -259,12 +227,11 @@ export default function App() {
     if (user) {
       await syncSavePage(merged, user.uid);
     } else {
-      saveGuestWorkspaceData(updatedPages, databases);
-      fetch(`/api/pages/${id}`, {
+      await fetch(`/api/pages/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
-      }).catch(() => {});
+      });
     }
   };
 
@@ -285,8 +252,7 @@ export default function App() {
     if (user) {
       await syncDeletePage(id, pages);
     } else {
-      saveGuestWorkspaceData(remaining, databases);
-      fetch(`/api/pages/${id}`, { method: 'DELETE' }).catch(() => {});
+      await fetch(`/api/pages/${id}`, { method: 'DELETE' });
     }
   };
 
@@ -336,49 +302,32 @@ export default function App() {
         console.error('[App] Error creating database in Firestore:', err);
       }
     } else {
-      // Guest mode instant creation
-      const newDb: Database = {
-        id: 'guest-db-' + Math.random().toString(36).slice(2, 9),
-        userId: 'guest',
-        title: 'Untitled Database',
-        icon: '📊',
-        schema: JSON.stringify([
-          { id: 'col-name', name: 'Name', type: 'text' },
-          { id: 'col-status', name: 'Status', type: 'status', options: [
-            { id: 'opt-1', label: 'Not Started', color: '#E3E2E0' },
-            { id: 'opt-2', label: 'Done', color: '#DBEDDB' }
-          ]}
-        ]),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        rows: []
-      };
-      const updated = [...databases, newDb];
-      setDatabases(updated);
-      saveGuestWorkspaceData(pages, updated);
-      handleSelectItem({ type: 'database', id: newDb.id });
-
-      fetch('/api/databases', {
+      const res = await fetch('/api/databases', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: 'Untitled Database', icon: '📊' }),
-      }).catch(() => {});
+      });
+      if (res.ok) {
+        const newDb: Database = await res.json();
+        setDatabases((prev) => [...prev, newDb]);
+        handleSelectItem({ type: 'database', id: newDb.id });
+      }
     }
   };
 
   const handleUpdateDatabase = async (id: string, updates: Partial<Database>) => {
-    const updated = databases.map((d) => (d.id === id ? { ...d, ...updates } : d));
-    setDatabases(updated);
+    setDatabases((prev) =>
+      prev.map((d) => (d.id === id ? { ...d, ...updates } : d))
+    );
 
     if (user) {
       await syncUpdateDatabase(id, updates, user.uid);
     } else {
-      saveGuestWorkspaceData(pages, updated);
-      fetch(`/api/databases/${id}`, {
+      await fetch(`/api/databases/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
-      }).catch(() => {});
+      });
     }
   };
 
@@ -399,8 +348,7 @@ export default function App() {
     if (user) {
       await syncDeleteDatabase(id, user.uid);
     } else {
-      saveGuestWorkspaceData(pages, remaining);
-      fetch(`/api/databases/${id}`, { method: 'DELETE' }).catch(() => {});
+      await fetch(`/api/databases/${id}`, { method: 'DELETE' });
     }
   };
 
@@ -416,27 +364,22 @@ export default function App() {
         })
       );
     } else {
-      const newRow: any = {
-        id: 'guest-row-' + Math.random().toString(36).slice(2, 9),
-        databaseId,
-        properties: JSON.stringify(properties),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      const updated = databases.map((d) => {
-        if (d.id === databaseId) {
-          return { ...d, rows: [...(d.rows || []), newRow] };
-        }
-        return d;
-      });
-      setDatabases(updated);
-      saveGuestWorkspaceData(pages, updated);
-
-      fetch(`/api/databases/${databaseId}/rows`, {
+      const res = await fetch(`/api/databases/${databaseId}/rows`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ properties }),
-      }).catch(() => {});
+      });
+      if (res.ok) {
+        const newRow = await res.json();
+        setDatabases((prev) =>
+          prev.map((d) => {
+            if (d.id === databaseId) {
+              return { ...d, rows: [...(d.rows || []), newRow] };
+            }
+            return d;
+          })
+        );
+      }
     }
   };
 
@@ -449,62 +392,61 @@ export default function App() {
     const currentRow = currentDb?.rows?.find((r) => r.id === rowId);
     const existingProperties = currentRow?.properties || '{}';
 
-    const updated = databases.map((d) => {
-      if (d.id === databaseId) {
-        const updatedRows = (d.rows || []).map((r) => {
-          if (r.id === rowId) {
-            let existing = {};
-            try {
-              existing = JSON.parse(r.properties);
-            } catch {
-              existing = {};
+    // Optimistic update
+    setDatabases((prev) =>
+      prev.map((d) => {
+        if (d.id === databaseId) {
+          const updatedRows = (d.rows || []).map((r) => {
+            if (r.id === rowId) {
+              let existing = {};
+              try {
+                existing = JSON.parse(r.properties);
+              } catch {
+                existing = {};
+              }
+              return {
+                ...r,
+                properties: JSON.stringify({ ...existing, ...properties }),
+              };
             }
-            return {
-              ...r,
-              properties: JSON.stringify({ ...existing, ...properties }),
-            };
-          }
-          return r;
-        });
-        return { ...d, rows: updatedRows };
-      }
-      return d;
-    });
-
-    setDatabases(updated);
+            return r;
+          });
+          return { ...d, rows: updatedRows };
+        }
+        return d;
+      })
+    );
 
     if (user) {
       await syncUpdateRow(rowId, properties, existingProperties, user.uid, databaseId);
     } else {
-      saveGuestWorkspaceData(pages, updated);
-      fetch(`/api/databases/${databaseId}/rows/${rowId}`, {
+      await fetch(`/api/databases/${databaseId}/rows/${rowId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ properties }),
-      }).catch(() => {});
+      });
     }
   };
 
   const handleDeleteRow = async (databaseId: string, rowId: string) => {
-    const updated = databases.map((d) => {
-      if (d.id === databaseId) {
-        return {
-          ...d,
-          rows: (d.rows || []).filter((r) => r.id !== rowId),
-        };
-      }
-      return d;
-    });
-
-    setDatabases(updated);
+    setDatabases((prev) =>
+      prev.map((d) => {
+        if (d.id === databaseId) {
+          return {
+            ...d,
+            rows: (d.rows || []).filter((r) => r.id !== rowId),
+          };
+        }
+        return d;
+      })
+    );
 
     if (user) {
       await syncDeleteRow(rowId);
     } else {
-      saveGuestWorkspaceData(pages, updated);
-      fetch(`/api/databases/${databaseId}/rows/${rowId}`, {
+      await fetch(`/api/databases/${databaseId}/rows/${rowId}`, {
         method: 'DELETE',
-      }).catch(() => {});
+      });
     }
   };
 
