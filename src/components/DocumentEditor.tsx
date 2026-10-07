@@ -8,6 +8,7 @@ import { Page, SaveStatus } from '../types/index.ts';
 import { IconPicker } from './IconPicker.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import { recordUploadedMedia } from '../services/workspace.ts';
+import { uploadFileToStorage } from '../services/firebase.ts';
 
 interface DocumentEditorProps {
   page: Page;
@@ -36,93 +37,38 @@ const InnerBlockEditor: React.FC<{
     }
   }, [initialContentString]);
 
-  // Resilient multi-tier file upload handler with streaming support
+  // Direct Firebase Cloud Storage file upload handler with resilient inline fallback
   const handleUploadFile = async (file: File): Promise<string> => {
-    // 1. Primary: High-speed server multipart upload to /api/upload/file
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      // 1. Direct Firebase Cloud Storage upload
+      const effectiveUserId = userId || 'public_guest';
+      const cloudUrl = await uploadFileToStorage(file, effectiveUserId);
 
-      const res = await fetch('/api/upload/file', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const url = data.url || data.streamUrl;
-        if (url) {
-          if (userId) {
-            recordUploadedMedia({
-              userId,
-              userEmail: userEmail || 'user@workspace.com',
-              userName: userName || 'User',
-              fileName: file.name,
-              fileUrl: url,
-              fileKey: data.key || '',
-              fileSize: file.size,
-              mimeType: file.type || 'image/png',
-            }).catch((err) => console.warn('[Record media warning]:', err));
-          }
-          return url;
-        }
+      // 2. Track media in Firestore if user is authenticated
+      if (userId) {
+        recordUploadedMedia({
+          userId,
+          userEmail: userEmail || 'user@workspace.com',
+          userName: userName || 'User',
+          fileName: file.name,
+          fileUrl: cloudUrl,
+          fileKey: `users/${effectiveUserId}/uploads/${file.name}`,
+          fileSize: file.size,
+          mimeType: file.type || 'application/octet-stream',
+        }).catch((err) => console.warn('[Record media warning]:', err));
       }
+
+      return cloudUrl;
     } catch (uploadErr) {
-      console.warn('[Upload] Multipart upload attempt failed, trying direct binary stream:', uploadErr);
-    }
-
-    // 2. Secondary: Raw binary stream PUT to /api/upload/direct
-    try {
-      const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const uniqueKey = `uploads/${Date.now()}-${cleanName}`;
-      const directRes = await fetch(`/api/upload/direct?key=${encodeURIComponent(uniqueKey)}`, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Content-Type': file.type || 'application/octet-stream',
-        },
-      });
-
-      if (directRes.ok) {
-        return `/${uniqueKey}`;
-      }
-    } catch (putErr) {
-      console.warn('[Upload] Direct binary PUT failed:', putErr);
-    }
-
-    // 3. Tertiary: Base64 JSON upload to /api/upload/base64
-    try {
-      const base64Data = await new Promise<string>((resolve, reject) => {
+      console.warn('[Upload] Cloud storage direct upload failed, using inline Data URL fallback:', uploadErr);
+      // Inline Data URL fallback so the image, audio, or document displays immediately
+      return new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result as string);
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
-
-      const b64Res = await fetch('/api/upload/base64', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          data: base64Data,
-          filename: file.name,
-          contentType: file.type,
-        }),
-      });
-
-      if (b64Res.ok) {
-        const data = await b64Res.json();
-        return data.url || data.streamUrl;
-      }
-
-      // 4. Quaternary: If file is compact (< 700KB), inline Base64 data URL
-      if (file.size < 700 * 1024) {
-        return base64Data;
-      }
-    } catch (b64Err) {
-      console.error('[Upload] Base64 upload fallback error:', b64Err);
     }
-
-    throw new Error('Upload failed. Please check file format and try again.');
   };
 
   const editor = useCreateBlockNote({

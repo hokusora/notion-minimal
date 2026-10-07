@@ -279,9 +279,11 @@ class StorageEngine {
   private data: StorageData;
 
   constructor() {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
+    try {
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+    } catch {}
 
     if (fs.existsSync(DB_FILE)) {
       try {
@@ -293,7 +295,18 @@ class StorageEngine {
         this.persist();
       }
     } else {
-      this.data = seedDefaultData();
+      // Check bundled data/notion.db.json from repo
+      const bundledDb = path.resolve(process.cwd(), 'data', 'notion.db.json');
+      if (fs.existsSync(bundledDb)) {
+        try {
+          const content = fs.readFileSync(bundledDb, 'utf-8');
+          this.data = JSON.parse(content);
+        } catch {
+          this.data = seedDefaultData();
+        }
+      } else {
+        this.data = seedDefaultData();
+      }
       this.persist();
     }
 
