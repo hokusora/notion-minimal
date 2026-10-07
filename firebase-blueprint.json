@@ -1,0 +1,221 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Authenticated user profile in the Notion workspace",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user"
+        },
+        "email": {
+          "type": "string",
+          "description": "Google account email address"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Google display name"
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "Google avatar URL"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Account registration timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last profile update timestamp"
+        }
+      },
+      "required": ["id", "email"]
+    },
+    "Page": {
+      "title": "Page",
+      "description": "A Notion document page containing rich blocks and metadata",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the page"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the document owner"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the page",
+          "maxLength": 500
+        },
+        "icon": {
+          "type": "string",
+          "description": "Emoji or icon identifier",
+          "maxLength": 50
+        },
+        "content": {
+          "type": "string",
+          "description": "Serialized JSON string of BlockNote editor blocks",
+          "maxLength": 1000000
+        },
+        "parentId": {
+          "type": "string",
+          "description": "ID of parent page for nested page trees, or null for root pages"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Document creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last modified timestamp"
+        }
+      },
+      "required": ["id", "userId", "title"]
+    },
+    "Database": {
+      "title": "Database",
+      "description": "A structured database table collection in the Notion workspace",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the database"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the database owner"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the database",
+          "maxLength": 500
+        },
+        "icon": {
+          "type": "string",
+          "description": "Emoji or icon for the database",
+          "maxLength": 50
+        },
+        "schema": {
+          "type": "string",
+          "description": "JSON serialized string of ColumnSchema array",
+          "maxLength": 50000
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Database creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last modified timestamp"
+        }
+      },
+      "required": ["id", "userId", "title", "schema"]
+    },
+    "Row": {
+      "title": "Row",
+      "description": "A single row record within a database table",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the row"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the row owner"
+        },
+        "databaseId": {
+          "type": "string",
+          "description": "ID of the parent database"
+        },
+        "properties": {
+          "type": "string",
+          "description": "JSON serialized cell values mapped by column ID",
+          "maxLength": 100000
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Row creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last modified timestamp"
+        }
+      },
+      "required": ["id", "userId", "databaseId", "properties"]
+    },
+    "Media": {
+      "title": "Media",
+      "description": "Uploaded media attachment metadata for quota tracking and management",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the media record"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the uploader"
+        },
+        "userEmail": {
+          "type": "string",
+          "description": "Email address of the uploader"
+        },
+        "userName": {
+          "type": "string",
+          "description": "Display name of the uploader"
+        },
+        "fileName": {
+          "type": "string",
+          "description": "Original name of the uploaded file"
+        },
+        "fileUrl": {
+          "type": "string",
+          "description": "Stream or download URL of the file"
+        },
+        "fileKey": {
+          "type": "string",
+          "description": "Internal server or storage key"
+        },
+        "fileSize": {
+          "type": "number",
+          "description": "Size in bytes"
+        },
+        "mimeType": {
+          "type": "string",
+          "description": "MIME type of the media item"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Upload timestamp"
+        }
+      },
+      "required": ["id", "userId", "userEmail", "fileName", "fileUrl", "fileSize"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile data partitioned by user ID"
+    },
+    "/pages/{pageId}": {
+      "schema": "Page",
+      "description": "Workspace document pages owned by users"
+    },
+    "/databases/{databaseId}": {
+      "schema": "Database",
+      "description": "Databases owned by users"
+    },
+    "/rows/{rowId}": {
+      "schema": "Row",
+      "description": "Database rows owned by users"
+    },
+    "/media/{mediaId}": {
+      "schema": "Media",
+      "description": "Media uploads tracked for user storage quota and admin management"
+    }
+  }
+}

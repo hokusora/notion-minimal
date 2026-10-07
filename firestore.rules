@@ -1,0 +1,115 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        (request.auth.token.email == 'hoangkhuongsp1@gmail.com' && request.auth.token.email_verified == true);
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'email']) &&
+             data.id is string && data.id == request.auth.uid &&
+             data.email is string && data.email.size() > 0 && data.email.size() <= 256;
+    }
+
+    function isValidPage(data) {
+      return data.keys().hasAll(['id', 'userId', 'title']) &&
+             data.id is string && data.id.size() > 0 && data.id.size() <= 128 &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() <= 500 &&
+             (!('icon' in data) || data.icon == null || (data.icon is string && data.icon.size() <= 50)) &&
+             (!('content' in data) || (data.content is string && data.content.size() <= 1000000)) &&
+             (!('parentId' in data) || data.parentId == null || (data.parentId is string && data.parentId.size() <= 128));
+    }
+
+    function isValidDatabase(data) {
+      return data.keys().hasAll(['id', 'userId', 'title', 'schema']) &&
+             data.id is string && data.id.size() > 0 && data.id.size() <= 128 &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() <= 500 &&
+             data.schema is string && data.schema.size() <= 50000 &&
+             (!('icon' in data) || data.icon == null || (data.icon is string && data.icon.size() <= 50));
+    }
+
+    function isValidRow(data) {
+      return data.keys().hasAll(['id', 'userId', 'databaseId', 'properties']) &&
+             data.id is string && data.id.size() > 0 && data.id.size() <= 128 &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.databaseId is string && data.databaseId.size() > 0 && data.databaseId.size() <= 128 &&
+             data.properties is string && data.properties.size() <= 100000;
+    }
+
+    function isValidMedia(data) {
+      return data.keys().hasAll(['id', 'userId', 'userEmail', 'fileName', 'fileUrl', 'fileSize']) &&
+             data.id is string && data.id.size() > 0 && data.id.size() <= 128 &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.userEmail is string && data.userEmail.size() > 0 && data.userEmail.size() <= 256 &&
+             data.fileName is string && data.fileName.size() <= 300 &&
+             data.fileUrl is string && data.fileUrl.size() <= 1000 &&
+             data.fileSize is number && data.fileSize >= 0;
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow get: if (isOwner(userId) || isAdmin()) && isValidId(userId);
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUser(request.resource.data);
+      allow delete: if false;
+    }
+
+    // Document pages
+    match /pages/{pageId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && isValidId(pageId) && isValidPage(request.resource.data);
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == resource.data.userId && isValidId(pageId) && isValidPage(request.resource.data);
+      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Databases
+    match /databases/{databaseId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && isValidId(databaseId) && isValidDatabase(request.resource.data);
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == resource.data.userId && isValidId(databaseId) && isValidDatabase(request.resource.data);
+      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Database rows
+    match /rows/{rowId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && isValidId(rowId) && isValidRow(request.resource.data);
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && request.resource.data.userId == resource.data.userId && isValidId(rowId) && isValidRow(request.resource.data);
+      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Uploaded media files
+    match /media/{mediaId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid && isValidId(mediaId) && isValidMedia(request.resource.data);
+      allow update: if false;
+      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+  }
+}

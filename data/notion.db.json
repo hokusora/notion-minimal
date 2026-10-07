@@ -1,0 +1,62 @@
+{
+  "pages": [
+    {
+      "id": "b1e141c4-4466-4597-a43d-3627be41593c",
+      "title": "Welcome to Notion Minimal",
+      "icon": "📝",
+      "content": "[{\"id\":\"b-1\",\"type\":\"heading\",\"props\":{\"textColor\":\"default\",\"backgroundColor\":\"default\",\"textAlignment\":\"left\",\"level\":1},\"content\":[{\"type\":\"text\",\"text\":\"Welcome to Notion Minimal\",\"styles\":{}}],\"children\":[]},{\"id\":\"b-2\",\"type\":\"paragraph\",\"props\":{\"textColor\":\"default\",\"backgroundColor\":\"default\",\"textAlignment\":\"left\"},\"content\":[{\"type\":\"text\",\"text\":\"This is a lightweight, distraction-free Notion clone built with \",\"styles\":{}},{\"type\":\"text\",\"text\":\"BlockNote\",\"styles\":{\"bold\":true}},{\"type\":\"text\",\"text\":\", \",\"styles\":{}},{\"type\":\"text\",\"text\":\"SQLite persistence\",\"styles\":{\"bold\":true}},{\"type\":\"text\",\"text\":\", and \",\"styles\":{}},{\"type\":\"text\",\"text\":\"AWS S3 presigned uploads\",\"styles\":{\"bold\":true}},{\"type\":\"text\",\"text\":\".\",\"styles\":{}}],\"children\":[]},{\"id\":\"b-3\",\"type\":\"heading\",\"props\":{\"textColor\":\"default\",\"backgroundColor\":\"default\",\"textAlignment\":\"left\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Quick Start Guide\",\"styles\":{}}],\"children\":[]},{\"id\":\"b-4\",\"type\":\"bulletListItem\",\"props\":{\"textColor\":\"default\",\"backgroundColor\":\"default\",\"textAlignment\":\"left\"},\"content\":[{\"type\":\"text\",\"text\":\"Type \",\"styles\":{}},{\"type\":\"text\",\"text\":\"/\",\"styles\":{\"code\":true}},{\"type\":\"text\",\"text\":\" anywhere on a new line to open the slash command menu.\",\"styles\":{}}],\"children\":[]},{\"id\":\"b-5\",\"type\":\"checkListItem\",\"props\":{\"textColor\":\"default\",\"backgroundColor\":\"default\",\"textAlignment\":\"left\",\"checked\":true},\"content\":[{\"type\":\"text\",\"text\":\"Create and nest documents in the collapsible sidebar\",\"styles\":{}}],\"children\":[]},{\"id\":\"b-6\",\"type\":\"checkListItem\",\"props\":{\"textColor\":\"default\",\"backgroundColor\":\"default\",\"textAlignment\":\"left\",\"checked\":false},\"content\":[{\"type\":\"text\",\"text\":\"Drag or paste an image to test S3 presigned uploads\",\"styles\":{}}],\"children\":[]},{\"id\":\"b-7\",\"type\":\"checkListItem\",\"props\":{\"textColor\":\"default\",\"backgroundColor\":\"default\",\"textAlignment\":\"left\",\"checked\":false},\"content\":[{\"type\":\"text\",\"text\":\"Switch to Database view to manage structured spreadsheet rows\",\"styles\":{}}],\"children\":[]}]",
+      "parentId": null,
+      "createdAt": "2026-10-06T18:43:50.637Z",
+      "updatedAt": "2026-10-06T18:43:50.637Z"
+    },
+    {
+      "id": "42a3c13a-614e-479c-ae4e-8e52d75b9207",
+      "title": "Weekly Engineering Sync",
+      "icon": "📅",
+      "content": "[{\"id\":\"m-1\",\"type\":\"heading\",\"props\":{\"textColor\":\"default\",\"backgroundColor\":\"default\",\"textAlignment\":\"left\",\"level\":1},\"content\":[{\"type\":\"text\",\"text\":\"Weekly Engineering Sync\",\"styles\":{}}],\"children\":[]},{\"id\":\"m-2\",\"type\":\"paragraph\",\"props\":{\"textColor\":\"default\",\"backgroundColor\":\"default\",\"textAlignment\":\"left\"},\"content\":[{\"type\":\"text\",\"text\":\"Agenda and action items for the platform architecture review.\",\"styles\":{}}],\"children\":[]},{\"id\":\"m-3\",\"type\":\"heading\",\"props\":{\"textColor\":\"default\",\"backgroundColor\":\"default\",\"textAlignment\":\"left\",\"level\":2},\"content\":[{\"type\":\"text\",\"text\":\"Action Items\",\"styles\":{}}],\"children\":[]},{\"id\":\"m-4\",\"type\":\"checkListItem\",\"props\":{\"textColor\":\"default\",\"backgroundColor\":\"default\",\"textAlignment\":\"left\",\"checked\":true},\"content\":[{\"type\":\"text\",\"text\":\"Verify Prisma schema JSONB serialization\",\"styles\":{}}],\"children\":[]},{\"id\":\"m-5\",\"type\":\"checkListItem\",\"props\":{\"textColor\":\"default\",\"backgroundColor\":\"default\",\"textAlignment\":\"left\",\"checked\":false},\"content\":[{\"type\":\"text\",\"text\":\"Configure AWS S3 bucket CORS for presigned uploads\",\"styles\":{}}],\"children\":[]}]",
+      "parentId": "b1e141c4-4466-4597-a43d-3627be41593c",
+      "createdAt": "2026-10-06T18:43:50.637Z",
+      "updatedAt": "2026-10-06T18:43:50.637Z"
+    }
+  ],
+  "databases": [
+    {
+      "id": "17b44743-8a88-47f3-82f2-76e8dd33ec35",
+      "title": "Product Roadmap & Sprint Tasks",
+      "icon": "📊",
+      "schema": "[{\"id\":\"col-name\",\"name\":\"Task Name\",\"type\":\"text\"},{\"id\":\"col-status\",\"name\":\"Status\",\"type\":\"status\",\"options\":[{\"id\":\"opt-todo\",\"label\":\"Not Started\",\"color\":\"#E3E2E0\"},{\"id\":\"opt-inprogress\",\"label\":\"In Progress\",\"color\":\"#D3E5EF\"},{\"id\":\"opt-done\",\"label\":\"Completed\",\"color\":\"#DBEDDB\"},{\"id\":\"opt-archived\",\"label\":\"Archived\",\"color\":\"#FDECC8\"}]},{\"id\":\"col-tags\",\"name\":\"Tags\",\"type\":\"tags\",\"options\":[{\"id\":\"tag-frontend\",\"label\":\"Frontend\",\"color\":\"#D3E5EF\"},{\"id\":\"tag-backend\",\"label\":\"Backend\",\"color\":\"#FDECC8\"},{\"id\":\"tag-design\",\"label\":\"Design\",\"color\":\"#F5E0E9\"},{\"id\":\"tag-infra\",\"label\":\"Infrastructure\",\"color\":\"#E8DEEE\"}]},{\"id\":\"col-estimate\",\"name\":\"Story Points\",\"type\":\"number\"}]",
+      "createdAt": "2026-10-06T18:43:50.637Z",
+      "updatedAt": "2026-10-06T18:43:50.637Z"
+    }
+  ],
+  "rows": [
+    {
+      "id": "670d2bde-d0dd-4b39-b98e-204657401809",
+      "databaseId": "17b44743-8a88-47f3-82f2-76e8dd33ec35",
+      "properties": "{\"col-name\":\"Integrate BlockNote React editor\",\"col-status\":\"Completed\",\"col-tags\":[\"Frontend\"],\"col-estimate\":3}",
+      "createdAt": "2026-10-06T18:43:50.637Z",
+      "updatedAt": "2026-10-06T18:43:50.637Z"
+    },
+    {
+      "id": "63ecc7b4-feb6-4c2d-a73a-d05d5278e873",
+      "databaseId": "17b44743-8a88-47f3-82f2-76e8dd33ec35",
+      "properties": "{\"col-name\":\"AWS S3 presigned PUT URL generation\",\"col-status\":\"Completed\",\"col-tags\":[\"Backend\",\"Infrastructure\"],\"col-estimate\":5}",
+      "createdAt": "2026-10-06T18:43:50.637Z",
+      "updatedAt": "2026-10-06T18:43:50.637Z"
+    },
+    {
+      "id": "55299191-d3db-4b2e-9a08-e2d77a28cdaa",
+      "databaseId": "17b44743-8a88-47f3-82f2-76e8dd33ec35",
+      "properties": "{\"col-name\":\"Interactive spreadsheet database table view\",\"col-status\":\"In Progress\",\"col-tags\":[\"Frontend\",\"Design\"],\"col-estimate\":5}",
+      "createdAt": "2026-10-06T18:43:50.637Z",
+      "updatedAt": "2026-10-06T18:43:50.637Z"
+    },
+    {
+      "id": "9c714386-e3de-4ba2-a972-71a82b5d7296",
+      "databaseId": "17b44743-8a88-47f3-82f2-76e8dd33ec35",
+      "properties": "{\"col-name\":\"Auto-save debouncer (1000ms)\",\"col-status\":\"Not Started\",\"col-tags\":[\"Frontend\"],\"col-estimate\":2}",
+      "createdAt": "2026-10-06T18:43:50.637Z",
+      "updatedAt": "2026-10-06T18:43:50.637Z"
+    }
+  ]
+}

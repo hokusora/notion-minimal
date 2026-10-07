@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: notion-minimal-workspace
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: AWS_REGION
+        value: ap-northeast-2
+      - key: AWS_BUCKET_NAME
+        value: korea-seoul-912424954425-ap-northeast-2-an
+      - key: AWS_S3_FOLDER_PREFIX
+        value: notion-clone/uploads
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false

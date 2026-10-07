@@ -1,0 +1,6 @@
+{
+  "name": "Notion Minimal",
+  "description": "Minimal Notion clone workspace with Google Sign-In, Cloud Firestore persistence, nested pages, BlockNote block editor, and durable cloud storage.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
